@@ -1,0 +1,7 @@
+{
+  "width": 1920,
+  "height": 1080,
+  "fps": 30.0,
+  "scale": 0.001,
+  "pseudo_3d": "X=image_x, Y=constant, Z=image_height-image_y"
+}
