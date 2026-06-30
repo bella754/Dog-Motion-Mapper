@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
 """
-Train, validate and test a Random Forest dog-behaviour classifier from DLC/SuperAnimal keypoints.
+Train, validate and test a Random Forest dog-behaviour classifier from exported DLC/SuperAnimal CSV keypoints.
 
 Expected dataset layout, for example:
 
@@ -19,11 +18,8 @@ pose-estimation/
     resting-test-1.csv
     walking-test-1.csv
 
-The CSV files can be either:
-1) "long" format with columns: frame, bodypart, x, y, likelihood
-   optional: animal
-2) DeepLabCut wide CSV format with multi-row header
-3) DeepLabCut .h5 files with MultiIndex columns
+Expected CSV format:
+frame, animal, bodypart, x, y, likelihood
 
 The model uses relative pose/motion features, not absolute image movement:
 - every frame is centered on back_middle if available
@@ -35,7 +31,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import warnings
 from collections import Counter
 from pathlib import Path
@@ -190,154 +185,70 @@ def distance_xy(ax: np.ndarray, ay: np.ndarray, bx: np.ndarray, by: np.ndarray) 
 
 
 # ---------------------------------------------------------------------
-# Loading DLC/keypoint files
+# Loading keypoint CSV files
 # ---------------------------------------------------------------------
 
 def load_keypoints(path: Path, animal: Optional[str] = None) -> pd.DataFrame:
     """
-    Load a keypoint file and return a flat dataframe with columns like:
+    Load an exported keypoint CSV and return a flat dataframe with columns like:
     back_middle_x, back_middle_y, back_middle_likelihood, ...
-    Index should be frame number/order.
+
+    Expected CSV columns:
+    frame, animal, bodypart, x, y, likelihood
     """
     path = Path(path)
-    if path.suffix.lower() == ".h5":
-        df = pd.read_hdf(path)
-        return wide_to_flat(df, animal=animal)
 
-    # First try simple/long CSV.
-    try:
-        simple = pd.read_csv(path)
-        cols_lower = {c.lower().strip(): c for c in simple.columns}
-        required = {"bodypart", "x", "y"}
-        if required.issubset(cols_lower.keys()):
-            return long_to_flat(simple, animal=animal)
-    except Exception:
-        pass
+    if path.suffix.lower() != ".csv":
+        raise ValueError(f"Expected a .csv file, got: {path}")
 
-    # Then try DeepLabCut wide CSVs with 4- or 3-row headers.
-    last_error = None
-    for n_header_rows in (4, 3):
-        try:
-            wide = pd.read_csv(path, header=list(range(n_header_rows)), index_col=0)
-            flat = wide_to_flat(wide, animal=animal)
-            if any(c.endswith("_x") for c in flat.columns) and any(c.endswith("_y") for c in flat.columns):
-                return flat
-        except Exception as exc:
-            last_error = exc
-
-    raise ValueError(f"Could not parse keypoint file: {path}. Last error: {last_error}")
+    df = pd.read_csv(path)
+    return long_to_flat(df, animal=animal)
 
 
 def long_to_flat(df: pd.DataFrame, animal: Optional[str] = None) -> pd.DataFrame:
     colmap = {c.lower().strip(): c for c in df.columns}
 
-    frame_col = colmap.get("frame") or colmap.get("frames") or colmap.get("index")
+    required = {"frame", "bodypart", "x", "y", "likelihood"}
+    missing = required - set(colmap.keys())
+    if missing:
+        raise ValueError(f"CSV is missing required columns: {sorted(missing)}")
+
+    frame_col = colmap["frame"]
     bodypart_col = colmap["bodypart"]
     x_col = colmap["x"]
     y_col = colmap["y"]
-    likelihood_col = colmap.get("likelihood") or colmap.get("confidence") or colmap.get("score")
-    animal_col = colmap.get("animal") or colmap.get("individual") or colmap.get("individuals")
+    likelihood_col = colmap["likelihood"]
+    animal_col = colmap.get("animal")
 
     data = df.copy()
+
     if animal is not None and animal_col is not None:
         data = data[data[animal_col].astype(str) == str(animal)]
-    elif animal_col is not None:
-        # For single-dog videos, choose the first individual occurring in the file.
-        first_animal = data[animal_col].dropna().astype(str).iloc[0] if len(data[animal_col].dropna()) else None
-        if first_animal is not None:
-            data = data[data[animal_col].astype(str) == first_animal]
-
-    if frame_col is None:
-        # If no frame column exists, use row order per bodypart as fallback.
-        data = data.copy()
-        data["frame"] = data.groupby(bodypart_col).cumcount()
-        frame_col = "frame"
 
     data["_bodypart"] = data[bodypart_col].map(sanitize_bodypart_name)
     data["_frame"] = pd.to_numeric(data[frame_col], errors="coerce").astype("Int64")
     data = data.dropna(subset=["_frame", "_bodypart"])
 
     flat_parts = []
-    for value_col, suffix in [(x_col, "x"), (y_col, "y")]:
-        tmp = data.pivot_table(index="_frame", columns="_bodypart", values=value_col, aggfunc="first")
-        tmp = tmp.add_suffix(f"_{suffix}")
-        flat_parts.append(tmp)
 
-    if likelihood_col is not None:
-        tmp = data.pivot_table(index="_frame", columns="_bodypart", values=likelihood_col, aggfunc="first")
-        tmp = tmp.add_suffix("_likelihood")
+    for value_col, suffix in [
+        (x_col, "x"),
+        (y_col, "y"),
+        (likelihood_col, "likelihood"),
+    ]:
+        tmp = data.pivot_table(
+            index="_frame",
+            columns="_bodypart",
+            values=value_col,
+            aggfunc="first",
+        )
+        tmp = tmp.add_suffix(f"_{suffix}")
         flat_parts.append(tmp)
 
     flat = pd.concat(flat_parts, axis=1).sort_index()
     flat.index.name = "frame"
+
     return flat
-
-
-def wide_to_flat(df: pd.DataFrame, animal: Optional[str] = None) -> pd.DataFrame:
-    """Convert DLC wide MultiIndex dataframe to flat bodypart_x/bodypart_y columns."""
-    if not isinstance(df.columns, pd.MultiIndex):
-        raise ValueError("Expected MultiIndex columns for DLC wide format")
-
-    cols = df.columns
-    nlevels = cols.nlevels
-
-    # Find the coordinate level: it contains x, y and usually likelihood.
-    coord_level = None
-    for level in range(nlevels):
-        vals = {str(v).strip().lower() for v in cols.get_level_values(level)}
-        if {"x", "y"}.issubset(vals):
-            coord_level = level
-            break
-    if coord_level is None:
-        raise ValueError("Could not find x/y coordinate level in DLC columns")
-
-    bodypart_level = coord_level - 1
-    if bodypart_level < 0:
-        raise ValueError("Could not infer bodypart level in DLC columns")
-
-    # For multi-animal DLC: scorer / individual / bodypart / coord.
-    # If an animal is requested and there is a plausible individual level, select it.
-    selected = df
-    if animal is not None and nlevels >= 4:
-        possible_animal_level = coord_level - 2
-        values = [str(v) for v in cols.get_level_values(possible_animal_level).unique()]
-        if str(animal) in values:
-            selected = df.loc[:, df.columns.get_level_values(possible_animal_level).astype(str) == str(animal)]
-            cols = selected.columns
-
-    # If multi-animal and no animal was specified, choose the first individual.
-    elif nlevels >= 4 and coord_level >= 3:
-        possible_animal_level = coord_level - 2
-        unique_animals = [str(v) for v in cols.get_level_values(possible_animal_level).unique()]
-        # Avoid interpreting bodypart names as animals in unusual files.
-        if any(v.lower().startswith("animal") for v in unique_animals):
-            first = unique_animals[0]
-            selected = df.loc[:, df.columns.get_level_values(possible_animal_level).astype(str) == first]
-            cols = selected.columns
-
-    flat = pd.DataFrame(index=selected.index)
-    cols = selected.columns
-    coord_values = cols.get_level_values(coord_level).astype(str).str.lower().str.strip()
-    bodyparts = [sanitize_bodypart_name(v) for v in cols.get_level_values(bodypart_level)]
-
-    for bp in sorted(set(bodyparts)):
-        bp_mask = np.array([b == bp for b in bodyparts])
-        for coord in ("x", "y", "likelihood"):
-            coord_mask = np.array(coord_values == coord)
-            matching_cols = selected.columns[bp_mask & coord_mask]
-            if len(matching_cols) == 0:
-                continue
-            # If multiple scorers/duplicates exist, use the first one.
-            flat[f"{bp}_{coord}"] = pd.to_numeric(selected[matching_cols[0]], errors="coerce")
-
-    # Force numeric frame-like index if possible.
-    try:
-        flat.index = pd.to_numeric(flat.index, errors="ignore")
-    except Exception:
-        pass
-    flat.index.name = "frame"
-    return flat.sort_index()
-
 
 # ---------------------------------------------------------------------
 # Preprocessing and feature extraction
@@ -550,24 +461,33 @@ def extract_window_features(
 
 def discover_keypoint_files(data_root: Path, labels: Iterable[str]) -> pd.DataFrame:
     files = []
-    for ext in ("*.csv", "*.h5"):
-        for path in data_root.rglob(ext):
-            # Avoid reading our own output files.
-            lowered = str(path).lower()
-            if any(part in lowered for part in ["rf_outputs", "features_all", "window_predictions", "video_predictions", "feature_importance"]):
-                continue
-            split = infer_split(path)
-            label = infer_label(path, labels)
-            if split is None or label is None:
-                continue
-            files.append({
-                "path": str(path),
-                "split": split,
-                "label": label,
-                "video_id": path.stem,
-            })
-    return pd.DataFrame(files)
 
+    for path in data_root.rglob("*.csv"):
+        # Avoid reading our own output files.
+        lowered = str(path).lower()
+        if any(part in lowered for part in [
+            "rf_outputs",
+            "features_all",
+            "window_predictions",
+            "video_predictions",
+            "feature_importance",
+        ]):
+            continue
+
+        split = infer_split(path)
+        label = infer_label(path, labels)
+
+        if split is None or label is None:
+            continue
+
+        files.append({
+            "path": str(path),
+            "split": split,
+            "label": label,
+            "video_id": path.stem,
+        })
+
+    return pd.DataFrame(files)
 
 def build_feature_dataset(
     data_root: Path,
@@ -581,9 +501,9 @@ def build_feature_dataset(
     meta = discover_keypoint_files(data_root, labels=labels)
     if meta.empty:
         raise RuntimeError(
-            f"No keypoint CSV/H5 files found below {data_root}.\n"
-            "You need DLC/SuperAnimal keypoint outputs first, not only .mp4 videos.\n"
-            "Put the keypoint files into train/ val/ test/ folders and include the class name in the filename, "
+            f"No keypoint CSV files found below {data_root}.\n"
+            "You need exported DLC/SuperAnimal keypoint CSV files first, not .mp4 videos or .h5 files.\n"
+            "Put the CSV files into train/ val/ test/ folders and include the class name in the filename, "
             "e.g. train/walking-1.csv, val/sitting-val.csv."
         )
 
