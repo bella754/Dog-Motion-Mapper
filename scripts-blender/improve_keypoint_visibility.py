@@ -2,7 +2,6 @@
 This file should only improve the keypoint visibility
 It changes the color of the keypoint dots and sclae them to make them bigger
 """
-
 import bpy
 
 COLLECTION_NAME = "DLC_Keypoints"
@@ -24,5 +23,3 @@ for obj in coll.objects:
     if obj.type == "MESH":
         obj.data.materials.clear()
         obj.data.materials.append(mat)
-
-print("Keypoints vergrößert und besser sichtbar gemacht.")

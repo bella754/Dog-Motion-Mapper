@@ -1,10 +1,6 @@
 import bpy
 
-
-# ============================================================
-# EINSTELLUNGEN
-# ============================================================
-
+# base settings
 ARMATURE_NAME = "Arm_Shepherd"
 
 TARGET_KEYPOINT = "kp_back_middle"
@@ -22,11 +18,7 @@ FOLLOW_Y = True
 # Erstmal False lassen, damit der Hund nicht komisch hoch/runter springt.
 FOLLOW_Z = False
 
-
-# ============================================================
-# OBJEKTE HOLEN
-# ============================================================
-
+# get mesh object
 scene = bpy.context.scene
 
 arm = bpy.data.objects.get(ARMATURE_NAME)
@@ -56,10 +48,7 @@ def move_object_world(obj, delta):
     obj.location.z += delta.z
 
 
-# ============================================================
-# ALTE LOCATION-KEYFRAMES VOM ARMATURE-OBJEKT ENTFERNEN
-# ============================================================
-
+# delete old information
 if arm.animation_data and arm.animation_data.action:
     action = arm.animation_data.action
 
@@ -68,10 +57,7 @@ if arm.animation_data and arm.animation_data.action:
             action.fcurves.remove(fc)
 
 
-# ============================================================
-# ARMATURE PRO FRAME AUF KEYPOINT SCHIEBEN
-# ============================================================
-
+# map mesh points on video keypoints
 for frame in range(START_FRAME, END_FRAME + 1):
     scene.frame_set(frame)
     bpy.context.view_layer.update()
@@ -97,7 +83,3 @@ for frame in range(START_FRAME, END_FRAME + 1):
 
 scene.frame_set(START_FRAME)
 bpy.context.view_layer.update()
-
-print("Fertig.")
-print(f"{ARMATURE_NAME} wurde so animiert, dass {ANCHOR_BONE} {TARGET_KEYPOINT} folgt.")
-print("Frames:", START_FRAME, "-", END_FRAME)

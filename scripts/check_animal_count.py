@@ -6,13 +6,11 @@ Prüft pro tier, wie oft genug keypoints sichtbar sind
 Basically: 
     For each animal: In how many frames were #<min-visible-keypoints> with likelihood bigger than <likelihood-thershold> detectd? 
 """
-
 import argparse
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Count visible DLC/SuperAnimal keypoints per animal.")
@@ -21,7 +19,6 @@ def parse_args():
     parser.add_argument("--min-visible-keypoints", type=int, default=8)
     parser.add_argument("--individuals", nargs="+", default=["animal0", "animal1", "animal2", "animal3", "animal4"])
     return parser.parse_args()
-
 
 def main():
     args = parse_args()
@@ -51,7 +48,6 @@ def main():
             "avg visible keypoints:",
             round(visible_per_frame.mean(), 2),
         )
-
 
 if __name__ == "__main__":
     main()

@@ -1,37 +1,23 @@
 import bpy
 from mathutils import Vector
 
-
-# ============================================================
-# EINSTELLUNGEN
-# ============================================================
-
+# basic setup
 ARMATURE_NAME = "Arm_Shepherd"
 KEYPOINT_COLLECTION = "DLC_Keypoints"
 
-OUTPUT_PATH = "/home/bellatrix/master_cs/semester3/HTCV/project/blender/june6/dog_animation.mp4"
+OUTPUT_PATH = "/home/bellatrix/master_cs/semester3/HTCV/project/scripts-blender/dog_animation.mp4"
 
 RESOLUTION_X = 1280
 RESOLUTION_Y = 720
 FPS = 30
 
-# Kamera relativ zum Hund.
-# Falls der Hund schlecht sichtbar ist, diese Werte anpassen.
 CAMERA_OFFSET = Vector((0.0, -7.0, 3.0))
 
-# Zielpunkt etwas über dem Armature-Origin
 CAMERA_TARGET_Z_OFFSET = 1.0
 
 ADD_SIMPLE_FUR = False
-# Vorsicht: Fur kann Blender deutlich langsamer machen.
-# Wenn du testen willst:
-# ADD_SIMPLE_FUR = True
 
-
-# ============================================================
-# HILFSFUNKTIONEN
-# ============================================================
-
+# helper functions
 def collection_contains_object(collection_name, obj):
     coll = bpy.data.collections.get(collection_name)
     if coll is None:
@@ -82,10 +68,7 @@ def get_world_bbox(objects):
     return min_v, max_v
 
 
-# ============================================================
-# KEYPOINTS AUSBLENDEN
-# ============================================================
-
+# hide keypoints
 kp_coll = bpy.data.collections.get(KEYPOINT_COLLECTION)
 
 if kp_coll is not None:
@@ -95,11 +78,7 @@ if kp_coll is not None:
 
 print("Keypoints ausgeblendet.")
 
-
-# ============================================================
-# DOG MESHES FINDEN
-# ============================================================
-
+# get dog mesh
 dog_meshes = get_dog_mesh_objects()
 
 print("Dog mesh objects:")
@@ -121,11 +100,7 @@ else:
         6.0
     ) * 3.0
 
-
-# ============================================================
-# OPTIONAL: SIMPLE FUR
-# ============================================================
-
+# optional: brauche ich das? 
 if ADD_SIMPLE_FUR:
     for obj in dog_meshes:
         if obj.type != "MESH":
@@ -147,11 +122,7 @@ if ADD_SIMPLE_FUR:
 
     print("Simple Fur hinzugefügt.")
 
-
-# ============================================================
-# BODEN ERSTELLEN
-# ============================================================
-
+# create ground
 old_ground = bpy.data.objects.get("Ground_Basic")
 if old_ground is not None:
     bpy.data.objects.remove(old_ground, do_unlink=True)
@@ -171,11 +142,7 @@ if mat_ground is None:
 
 ground.data.materials.append(mat_ground)
 
-
-# ============================================================
-# LICHT ERSTELLEN
-# ============================================================
-
+# create light
 old_light = bpy.data.objects.get("Main_Area_Light")
 if old_light is not None:
     bpy.data.objects.remove(old_light, do_unlink=True)
@@ -190,11 +157,7 @@ light.name = "Main_Area_Light"
 light.data.energy = 700
 light.data.size = 5.0
 
-
-# ============================================================
-# KAMERA UND TARGET ERSTELLEN
-# ============================================================
-
+# create camera / target
 arm = bpy.data.objects.get(ARMATURE_NAME)
 
 if arm is None:
@@ -235,11 +198,7 @@ constraint.up_axis = "UP_Y"
 
 bpy.context.scene.camera = camera
 
-
-# ============================================================
-# RENDER SETTINGS
-# ============================================================
-
+# render setup
 scene = bpy.context.scene
 
 scene.render.engine = "BLENDER_EEVEE"
@@ -267,12 +226,3 @@ for area in bpy.context.screen.areas:
         for space in area.spaces:
             if space.type == "VIEW_3D":
                 space.shading.type = "RENDERED"
-
-print("--------------------------------------------------")
-print("Render-Setup fertig.")
-print("Output:", OUTPUT_PATH)
-print("Zum Rendern:")
-print("Render > Render Animation")
-print("oder in Python:")
-print("bpy.ops.render.render(animation=True)")
-print("--------------------------------------------------")

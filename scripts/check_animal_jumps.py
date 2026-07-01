@@ -5,13 +5,10 @@ For each detected animal, only keypoints with sufficient likelihood are used.
 From these keypoints, the center is calculated for each frame, and then
 a check is performed to see if this center jumps an unusually large distance between two frames.
 """
-
 import argparse
 from pathlib import Path
-
 import numpy as np
 import pandas as pd
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Check center jumps per detected animal in a DLC/SuperAnimal .h5 file.")
@@ -21,7 +18,6 @@ def parse_args():
     parser.add_argument("--jump-threshold", type=float, default=100.0, help="Schwellwert für große Sprünge in Pixeln")
     parser.add_argument("--individuals", nargs="+", default=["animal0", "animal1", "animal2", "animal3", "animal4"])
     return parser.parse_args()
-
 
 def main():
     args = parse_args()
@@ -68,7 +64,6 @@ def main():
         print(f"big jumps >{args.jump_threshold:g}px:", len(big_jumps))
         if len(big_jumps) > 0:
             print("jump frames:", list(big_jumps[:10]))
-
 
 if __name__ == "__main__":
     main()

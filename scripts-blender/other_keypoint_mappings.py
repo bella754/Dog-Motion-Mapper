@@ -1,15 +1,18 @@
+"""
+influence:
+0.05 - 0.15 = sehr vorsichtig
+0.2  - 0.35 = sichtbar, aber noch halbwegs stabil
+1.0         = fast nie für diese restlichen Punkte sinnvoll
+
+use_z:
+True  = Höhe folgt mit
+False = nur X/Y, stabiler
+"""
 import bpy
 
-
-# ============================================================
-# EINSTELLUNGEN
-# ============================================================
-
+# base settings
 ARMATURE_NAME = "Arm_Shepherd"
 
-# Bestehendes Mapping NICHT überschreiben:
-# Dein Rücken-Follow läuft über Armature-Location.
-# Deine Pfoten sind schon gemappt.
 LOCKED_BONES = {
     "Spine_04",
     "Helper_shin_f.L",
@@ -18,30 +21,11 @@ LOCKED_BONES = {
     "Helper_foot_b.R",
 }
 
-# Alte DLC-Constraints nur auf den Bones entfernen, die dieses Script neu mappt.
 REMOVE_OLD_DLC_CONSTRAINTS = True
 
-# Falls links/rechts im Video vertauscht wirkt, später auf True setzen.
 SWAP_LEFT_RIGHT = False
 
-
-# ============================================================
-# MAPPING-SPEZIFIKATIONEN
-# ============================================================
-# influence:
-#   0.05 - 0.15 = sehr vorsichtig
-#   0.2  - 0.35 = sichtbar, aber noch halbwegs stabil
-#   1.0         = fast nie für diese restlichen Punkte sinnvoll
-#
-# use_z:
-#   True  = Höhe folgt mit
-#   False = nur X/Y, stabiler
-
-
 SPECS = [
-    # --------------------------------------------------------
-    # RÜCKEN / KÖRPER
-    # --------------------------------------------------------
     {
         "label": "back_base_to_spine_base",
         "bones": ["Spine_base", "Spine_01", "Root_bone"],
@@ -60,10 +44,6 @@ SPECS = [
         "use_y": True,
         "use_z": False,
     },
-
-    # --------------------------------------------------------
-    # HALS / KOPF
-    # --------------------------------------------------------
     {
         "label": "neck_to_neck_keypoint",
         "bones": ["neck", "Neck", "Neck_01", "Spine_05"],
@@ -91,12 +71,6 @@ SPECS = [
         "use_y": True,
         "use_z": True,
     },
-
-    # --------------------------------------------------------
-    # VORDERBEINE: Knie / Thigh
-    # Achtung: Helper_shin_f.L/R sind bei dir schon für die Vorderpfoten benutzt.
-    # Deshalb werden hier eher deform bones wie shin_f/thigh_f getestet.
-    # --------------------------------------------------------
     {
         "label": "front_left_knee",
         "bones": ["shin_f.L", "forearm_f.L", "lower_arm_f.L", "leg_f.L"],
@@ -133,11 +107,6 @@ SPECS = [
         "use_y": True,
         "use_z": True,
     },
-
-    # --------------------------------------------------------
-    # HINTERBEINE: Knie / Thigh
-    # Helper_foot_b.L/R sind schon für Hinterpfoten benutzt.
-    # --------------------------------------------------------
     {
         "label": "back_left_knee",
         "bones": ["shin_b.L", "Helper_shin_b.L", "lower_leg_b.L", "leg_b.L"],
@@ -174,11 +143,6 @@ SPECS = [
         "use_y": True,
         "use_z": True,
     },
-
-    # --------------------------------------------------------
-    # BODY SIDE POINTS
-    # Diese können schnell komisch ziehen, daher sehr niedrige Influence.
-    # --------------------------------------------------------
     {
         "label": "body_middle_left",
         "bones": ["body_middle.L", "rib.L", "chest.L", "Spine_03"],
@@ -197,10 +161,6 @@ SPECS = [
         "use_y": True,
         "use_z": False,
     },
-
-    # --------------------------------------------------------
-    # SCHWANZ, falls dein Rig passende Bones hat
-    # --------------------------------------------------------
     {
         "label": "tail_base",
         "bones": ["tail_base", "Tail_base", "tail_01", "Tail_01"],
@@ -221,11 +181,7 @@ SPECS = [
     },
 ]
 
-
-# ============================================================
-# HILFSFUNKTIONEN
-# ============================================================
-
+# helper
 def maybe_swap_lr(name):
     if not SWAP_LEFT_RIGHT:
         return name
@@ -281,11 +237,7 @@ def add_copy_location_constraint(pbone, target, spec):
 
     return con
 
-
-# ============================================================
-# ARMATURE HOLEN
-# ============================================================
-
+# get mesh obj
 arm = bpy.data.objects.get(ARMATURE_NAME)
 
 if arm is None:
@@ -295,16 +247,7 @@ if arm.type != "ARMATURE":
     raise ValueError(f"{ARMATURE_NAME} ist keine Armature.")
 
 
-# ============================================================
-# MAPPING AUSFÜHREN
-# ============================================================
-
-print("--------------------------------------------------")
-print("Mappe restliche Keypoints")
-print("Armature:", ARMATURE_NAME)
-print("SWAP_LEFT_RIGHT:", SWAP_LEFT_RIGHT)
-print("--------------------------------------------------")
-
+# actual mapping
 mapped = []
 skipped = []
 
@@ -347,9 +290,3 @@ if skipped:
         print("  Kandidaten:", candidates)
 
 bpy.context.view_layer.update()
-
-print("--------------------------------------------------")
-print("Fertig.")
-print("Wenn etwas stark verzerrt: influence im jeweiligen SPECS-Eintrag reduzieren.")
-print("Wenn links/rechts falsch ist: SWAP_LEFT_RIGHT = True testen.")
-print("--------------------------------------------------")

@@ -1,16 +1,8 @@
 import bpy
 
-
-# ============================================================
-# EINSTELLUNGEN
-# ============================================================
-
+# base settings
 ARMATURE_NAME = "Arm_Shepherd"
 
-# Erst niedrige Influence testen.
-# 0.0 = kein Effekt
-# 0.4 = sanfter Effekt
-# 1.0 = Bone folgt komplett dem Keypoint
 INFLUENCE = 0.4
 
 MAPPING = {
@@ -20,11 +12,7 @@ MAPPING = {
     "Helper_foot_b.R": "kp_back_right_paw",
 }
 
-
-# ============================================================
-# ARMATURE HOLEN
-# ============================================================
-
+# get mesh obj
 arm = bpy.data.objects.get(ARMATURE_NAME)
 
 if arm is None:
@@ -33,11 +21,7 @@ if arm is None:
 if arm.type != "ARMATURE":
     raise ValueError(f"{ARMATURE_NAME} ist keine Armature.")
 
-
-# ============================================================
-# CONSTRAINTS SETZEN
-# ============================================================
-
+# constraints
 for bone_name, kp_name in MAPPING.items():
     if bone_name not in arm.pose.bones:
         print("Bone nicht gefunden:", bone_name)
@@ -66,5 +50,3 @@ for bone_name, kp_name in MAPPING.items():
     print(f"{bone_name} folgt {kp_name} mit Influence {INFLUENCE}")
 
 bpy.context.view_layer.update()
-
-print("Pfoten-Constraints gesetzt.")

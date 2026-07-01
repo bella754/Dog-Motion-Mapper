@@ -2,7 +2,6 @@
 This file was created by ChatGPT with all necessary informaion from my side
 """
 
-
 import bpy
 import csv
 import re
@@ -14,7 +13,7 @@ from collections import defaultdict
 # EINSTELLUNGEN
 # ============================================================
 
-CSV_PATH = r"/home/bellatrix/master_cs/semester3/HTCV/project/outputs/single_dog/singleDog_animal0_keypoints.csv"
+CSV_PATH = r"/home/bellatrix/master_cs/semester3/HTCV/Dog-Motion-Mapper/dlc-outputs/single_dog/singleDog_animal0_keypoints.csv"
 
 COLLECTION_NAME = "DLC_Keypoints"
 

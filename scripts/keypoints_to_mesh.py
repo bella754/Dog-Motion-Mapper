@@ -1,16 +1,12 @@
 import csv
 from pathlib import Path
-
 import bpy
-
 
 CSV_PATH = Path("/home/bellatrix/master_cs/semester3/HTCV/project/outputs/single_dog/singleDog_animal0_keypoints.csv")
 
 SCALE = 0.005
 Y_FLIP = True
 FRAME_OFFSET = 0
-
-# Erstmal nur die wichtigsten Punkte importieren
 BODY_PARTS_TO_IMPORT = {
     "nose",
     "neck_base",
@@ -26,7 +22,6 @@ BODY_PARTS_TO_IMPORT = {
     "back_right_paw",
 }
 
-
 def get_or_create_empty(name):
     obj = bpy.data.objects.get(name)
 
@@ -37,7 +32,6 @@ def get_or_create_empty(name):
         bpy.context.scene.collection.objects.link(obj)
 
     return obj
-
 
 def main():
     if not CSV_PATH.exists():
@@ -78,6 +72,5 @@ def main():
     for name in sorted(created):
         print(" ", name)
     print("End frame:", max_frame)
-
 
 main()

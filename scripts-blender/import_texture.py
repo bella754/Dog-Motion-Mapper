@@ -1,11 +1,7 @@
 import bpy
 from pathlib import Path
 
-
-# ============================================================
-# EINSTELLUNGEN
-# ============================================================
-
+# base settings
 TEXTURE_DIR = Path("/home/bellatrix/master_cs/semester3/HTCV/mesh_model/shepperd/Shepherd_Textures_v01/texture")
 
 DOG_MESH_NAME = "Shepherd"
@@ -17,11 +13,7 @@ AO_TEXTURE = "Shepherd_AO.png"
 NORMAL_TEXTURE = "Shepherd_Normal.png"
 ROUGHNESS_TEXTURE = "Shepherd_Roughness.png"
 
-
-# ============================================================
-# TEXTURPFADE
-# ============================================================
-
+# texture path
 albedo_path = TEXTURE_DIR / MAIN_ALBEDO
 ao_path = TEXTURE_DIR / AO_TEXTURE
 normal_path = TEXTURE_DIR / NORMAL_TEXTURE
@@ -31,11 +23,7 @@ for path in [albedo_path, ao_path, normal_path, roughness_path]:
     if not path.exists():
         raise FileNotFoundError(f"Textur nicht gefunden: {path}")
 
-
-# ============================================================
-# OBJEKT HOLEN
-# ============================================================
-
+# get mesh object
 dog = bpy.data.objects.get(DOG_MESH_NAME)
 
 if dog is None:
@@ -45,10 +33,7 @@ if dog.type != "MESH":
     raise ValueError(f"{DOG_MESH_NAME} ist kein Mesh-Objekt.")
 
 
-# ============================================================
-# MATERIAL ERSTELLEN
-# ============================================================
-
+# create material
 mat_name = "Shepherd_Textured_Material"
 
 old_mat = bpy.data.materials.get(mat_name)
@@ -121,19 +106,8 @@ links.new(bsdf.outputs["BSDF"], output.inputs["Surface"])
 if "Specular" in bsdf.inputs:
     bsdf.inputs["Specular"].default_value = 0.25
 
-
-# ============================================================
-# MATERIAL AUF HUND ANWENDEN
-# ============================================================
-
+# set texture
 dog.data.materials.clear()
 dog.data.materials.append(mat)
 
 bpy.context.view_layer.update()
-
-print("Texturmaterial angewendet.")
-print("Hund:", DOG_MESH_NAME)
-print("Albedo:", albedo_path)
-print("AO:", ao_path)
-print("Normal:", normal_path)
-print("Roughness:", roughness_path)

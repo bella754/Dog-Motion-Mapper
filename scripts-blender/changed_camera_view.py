@@ -1,45 +1,22 @@
 import bpy
 from mathutils import Vector
 
-
-# ============================================================
-# EINSTELLUNGEN
-# ============================================================
-
+# base setup
 ARMATURE_NAME = "Arm_Shepherd"
 
 CAMERA_NAME = "Dog_Side_Camera"
 TARGET_NAME = "Dog_Side_Camera_Target"
 
-# Seite:
-# +X = eine Seite
-# -X = andere Seite
 SIDE = "+X"
-# SIDE = "-X"
-
-# Abstand zur Laufbahn
 DISTANCE = 5.0
-
-# Kamerahöhe
 HEIGHT = 1.2
-
-# Zielhöhe: worauf die Kamera schaut
 TARGET_HEIGHT = 0.8
-
-# Brennweite:
-# kleiner = mehr Umgebung sichtbar
-# größer = näher/zoomed
 LENS = 35
 
-# Frames zum Abschätzen der Laufbahn
 START_FRAME = bpy.context.scene.frame_start
 END_FRAME = bpy.context.scene.frame_end
 
-
-# ============================================================
-# ARMATURE HOLEN
-# ============================================================
-
+# get mesh
 scene = bpy.context.scene
 arm = bpy.data.objects.get(ARMATURE_NAME)
 
@@ -47,9 +24,6 @@ if arm is None:
     raise ValueError(f"Armature nicht gefunden: {ARMATURE_NAME}")
 
 
-# ============================================================
-# LAUFBAHN / MITTELPUNKT BESTIMMEN
-# ============================================================
 
 positions = []
 
@@ -82,21 +56,14 @@ target_location = Vector((
     TARGET_HEIGHT,
 ))
 
-
-# ============================================================
-# ALTE KAMERA / TARGET LÖSCHEN
-# ============================================================
-
+# delete old camera
 for name in [CAMERA_NAME, TARGET_NAME]:
     obj = bpy.data.objects.get(name)
     if obj is not None:
         bpy.data.objects.remove(obj, do_unlink=True)
 
 
-# ============================================================
-# TARGET ERSTELLEN
-# ============================================================
-
+# create new
 bpy.ops.object.empty_add(
     type="PLAIN_AXES",
     location=target_location
@@ -105,11 +72,7 @@ bpy.ops.object.empty_add(
 target = bpy.context.object
 target.name = TARGET_NAME
 
-
-# ============================================================
-# KAMERA SEITLICH ERSTELLEN
-# ============================================================
-
+# change camera perspective
 side_sign = 1.0 if SIDE == "+X" else -1.0
 
 camera_location = Vector((
@@ -138,10 +101,3 @@ scene.camera = camera
 # Zurück zum Startframe
 scene.frame_set(START_FRAME)
 bpy.context.view_layer.update()
-
-print("Feste Seitenkamera gesetzt.")
-print("Kamera:", CAMERA_NAME)
-print("Side:", SIDE)
-print("Location:", camera.location)
-print("Target:", target.location)
-print("Lens:", LENS)

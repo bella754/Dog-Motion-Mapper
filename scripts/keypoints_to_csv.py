@@ -1,12 +1,9 @@
 """
 Extract keypoints from .h5 file for one animal and put them into a csv
 """
-
 import argparse
 from pathlib import Path
-
 import pandas as pd
-
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -15,7 +12,6 @@ def parse_args():
     parser.add_argument("--animal", default="animal0")
     parser.add_argument("--likelihood-threshold", type=float, default=0.8)
     return parser.parse_args()
-
 
 def main():
     args = parse_args()
@@ -61,7 +57,6 @@ def main():
     print(f"Rows: {len(out_df)}")
     print(f"Frames: {out_df['frame'].nunique() if len(out_df) > 0 else 0}")
     print(f"Bodyparts: {out_df['bodypart'].nunique() if len(out_df) > 0 else 0}")
-
 
 if __name__ == "__main__":
     main()
